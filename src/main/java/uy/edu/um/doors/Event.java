@@ -2,7 +2,7 @@ package uy.edu.um.doors;
 
 import uy.edu.um.tad.list.MyLinkedListImpl;
 import uy.edu.um.tad.list.MyList;
-
+//
 public class Event {
     private EventType type;
     private MyList<String> instructions;
