@@ -52,6 +52,7 @@ public class ProcessManagerImpl implements ProcessManager {
         }
 
         // cargar procesos
+
         try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(processCsvPath))) {
             String line;
             br.readLine();
@@ -73,6 +74,9 @@ public class ProcessManagerImpl implements ProcessManager {
                     System.out.println("Usuario no encontrado uid=" + uid + ", pid=" + pid + " ignorado.");
                     continue;
                 }
+
+
+                // desarmar el formato del csv de los procesos
 
                 Process process = new Process(pid, name, owner);
 
@@ -108,7 +112,37 @@ public class ProcessManagerImpl implements ProcessManager {
 
     @Override
     public void prepareProcesses() {
-        System.out.println("IMPLEMENTAR");
+
+        while (!newProcesses.isEmpty()) {
+
+            try {
+
+                // sacando el proceso de la queue y lo agrego a pendientes
+
+                Process process = newProcesses.dequeue();
+                process.calculatePriority();
+                process.setState(ProcessState.PENDING);
+                pendingProcesses.insert(process);
+
+                // este log es temporario hasta que creemos el archivo
+
+                System.out.println("[" + getTimestamp() + "]: NEW PENDING PROCESS: PID ="
+                        + process.getPid() + " | " + process.getName()
+                        + " | " + process.getOwner()
+                        + " | P =" + process.getPriority());
+
+
+
+            } catch (Exception e) {
+
+                System.out.println("Error preparando el proceso: " + e.getMessage());
+
+            }
+
+        }
+
+
+
     }
 
     @Override
@@ -149,5 +183,15 @@ public class ProcessManagerImpl implements ProcessManager {
     @Override
     public void printStatusByProcess(int pid) {
         System.out.println("IMPLEMENTAR");
+    }
+
+
+    // metodo para calcular timestamp
+
+    private String getTimestamp() {
+
+        return java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
     }
 }
