@@ -174,7 +174,36 @@ public class ProcessManagerImpl implements ProcessManager {
 
     @Override
     public void executeNextProcess() {
-        System.out.println("IMPLEMENTAR");
+        
+        if (currentProcess != null) {
+            System.out.println("Ya hay un proceso en ejecución: PID=" + currentProcess.getPid());
+            return;
+        }
+
+        if (pendingProcesses.isEmpty()) {
+            System.out.println("No hay procesos pendientes para ejecutar.");
+            return;
+        }
+
+
+        Process p = pendingProcesses.remove();
+
+        p.setState(ProcessState.RUNNING);
+        currentProcess = p;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("EXECUTING PROCESS: PID=").append(p.getPid())
+            .append(" | USER:").append(p.getOwner().getAlias())
+            .append(" UID:").append(p.getOwner().getUid());
+
+        for (int i = 0; i < p.getEvents().size(); i++) {
+            sb.append("\n").append(p.getEvents().get(i));
+        }
+
+        log(sb.toString());
+
+
+
     }
 
     @Override
