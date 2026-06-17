@@ -36,3 +36,6 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Doors OS - logs generados cuando ejecutamos el programa ###
+DOORS_PROCESS_LOG_*
