@@ -13,10 +13,13 @@ import uy.edu.um.tad.heap.MyHeap;
 import uy.edu.um.tad.heap.MyHeapImpl;
 import uy.edu.um.tad.queue.MyQueue;
 import uy.edu.um.tad.queue.MyQueueImpl;
+import uy.edu.um.tad.stack.EmptyStackException;
 import uy.edu.um.tad.stack.MyStack;
 import uy.edu.um.tad.stack.MyStackImpl;
 
 public class ProcessManagerImpl implements ProcessManager {
+
+    private static final int max_finished_capacity = 10;
 
     private MyQueue<Process> newProcesses;
     private MyHeap<Process> pendingProcesses;
@@ -208,12 +211,12 @@ public class ProcessManagerImpl implements ProcessManager {
 
     @Override
     public void finishProcessOk() {
-        System.out.println("IMPLEMENTAR");
+        finishProcess(FinishType.OK, null);
     }
 
     @Override
     public void finishProcessError() {
-        System.out.println("IMPLEMENTAR");
+        finishProcess(FinishType.ERROR, null);
     }
 
     @Override
@@ -250,4 +253,53 @@ public class ProcessManagerImpl implements ProcessManager {
                 .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
     }
+
+    private void finishProcess(FinishType type, User terminatedBy) {
+
+        if (currentProcess == null) {
+            System.out.println("No hay proceso en ejecucion para finalizar.");
+            return;
+        }
+
+        Process p = currentProcess;
+
+        p.setState(ProcessState.FINISHED);
+        p.setFinishType(type);
+        p.setTerminatedBy(terminatedBy);
+        currentProcess = null;
+
+        if (finishedProcesses.size() == max_finished_capacity) {
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("Finished process stack overflow");
+
+            int n = finishedProcesses.size();
+            Process[] popped = new Process[n];
+
+            try {
+                for (int i = 0; i < n; i++) {
+                    popped[i] = finishedProcesses.pop();
+                }
+            } catch (EmptyStackException e) {
+                System.out.println("Error inesperado al vaciar stack de finalizados: " + e.getMessage());
+            }
+
+            for (int i = 0; i < n; i++) {
+                sb.append("\n").append(formatFinished(popped[i]));
+                finishedProcesses.push(popped[i]);
+            }
+
+
+        }
+    }
+
+    private String formatFinished(Process p) {
+
+        return  "PID=" + p.getPid() + " " + p.getName()
+                + " | STATE: " + p.getFinishType()
+                + " | " + p.getOwner();
+
+    }
+
+
 }
