@@ -3,13 +3,13 @@ package uy.edu.um.doors;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.rmi.server.UID;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 import uy.edu.um.tad.hash.MyHash;
 import uy.edu.um.tad.hash.MyHashImpl;
+import uy.edu.um.tad.heap.EmptyHeapException;
 import uy.edu.um.tad.heap.MyHeap;
 import uy.edu.um.tad.heap.MyHeapImpl;
 import uy.edu.um.tad.queue.MyQueue;
@@ -241,7 +241,48 @@ public class ProcessManagerImpl implements ProcessManager {
 
     @Override
     public void printStatus() {
-        System.out.println("IMPLEMENTAR");
+        
+        StringBuilder sb = new StringBuilder();
+        sb.append("PROCESS STATUS");
+
+        sb.append("\nEXECUTING:");
+        if (currentProcess != null) {
+            sb.append("\n\t").append(formatBasic(currentProcess));
+        }
+    
+
+        sb.append("\nPENDING:");
+        int nPending = pendingProcesses.size();
+        Process[] pendingArr = new Process[nPending];
+
+        for (int i = 0; i < nPending; i++) {
+            pendingArr[i] = pendingProcesses.remove();
+        }
+
+        for (int i = 0; i < nPending; i++) {
+            sb.append("\n\t").append(formatBasic(pendingArr[i]));
+            pendingProcesses.insert(pendingArr[i]);
+        }
+
+        sb.append("\nFINISHED:");
+        int nFinished = finishedProcesses.size();
+        Process[] finishedArr = new Process[nFinished];
+
+        try {
+            for (int i = 0; i < nPending; i++) {
+            pendingArr[i] = pendingProcesses.remove();
+            }
+        } catch (EmptyHeapException e) {
+            System.out.println("Error inesperado al recorrer pendientes: " + e.getMessage());
+        }
+
+        for (int i = 0; i < nFinished; i++) {
+            sb.append("\n\t").append(formatFinished(finishedArr[i]));
+        finishedProcesses.push(finishedArr[i]);
+        }
+
+        System.out.println(sb.toString());
+
     }
 
     @Override
@@ -260,7 +301,14 @@ public class ProcessManagerImpl implements ProcessManager {
     }
 
 
-    // metodo para calcular timestamp
+
+
+
+      ///////////////////////////////////////////////////////////////
+     //                 METODOS NUESTROS                      /////
+    //////////////////////////////////////////////////////////////
+
+
 
     private String getTimestamp() {
 
@@ -314,6 +362,12 @@ public class ProcessManagerImpl implements ProcessManager {
                 + " | STATE: " + p.getFinishType()
                 + " | " + p.getOwner();
 
+    }
+
+    private String formatBasic(Process p) {
+    return "PID=" + p.getPid() + " | " + p.getName()
+            + " | " + p.getOwner()
+            + " | P=" + p.getPriority();
     }
 
 
