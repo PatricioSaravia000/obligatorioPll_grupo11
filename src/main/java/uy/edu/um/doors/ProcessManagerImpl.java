@@ -3,6 +3,7 @@ package uy.edu.um.doors;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.rmi.server.UID;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -221,7 +222,21 @@ public class ProcessManagerImpl implements ProcessManager {
 
     @Override
     public void terminateProcess(int uid) {
-        System.out.println("IMPLEMENTAR");
+
+        if (currentProcess == null) {
+            System.out.println("No hay proceso en ejecucion para terminar.");
+            return;
+        }
+
+        User terminator = users.get(uid);
+
+        if (terminator == null) {
+            System.out.println("Usuario UID = " + uid + " no encontrado. No se puede terminar el proceso.");
+            return;
+        }
+
+        finishProcess(FinishType.TERMINATED, terminator);
+
     }
 
     @Override
