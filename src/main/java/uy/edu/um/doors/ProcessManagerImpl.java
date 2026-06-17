@@ -1,11 +1,16 @@
 package uy.edu.um.doors;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 import uy.edu.um.tad.hash.MyHash;
 import uy.edu.um.tad.hash.MyHashImpl;
-import uy.edu.um.tad.heap.MyHeapImpl;
 import uy.edu.um.tad.heap.MyHeap;
-import uy.edu.um.tad.list.MyLinkedListImpl;
-import uy.edu.um.tad.list.MyList;
+import uy.edu.um.tad.heap.MyHeapImpl;
 import uy.edu.um.tad.queue.MyQueue;
 import uy.edu.um.tad.queue.MyQueueImpl;
 import uy.edu.um.tad.stack.MyStack;
@@ -20,6 +25,9 @@ public class ProcessManagerImpl implements ProcessManager {
     private MyHash<Integer, User> users;
     private MyHash<Integer, Process> allProcesses;
 
+    private BufferedWriter logWriter;
+    private final DateTimeFormatter tsFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     public ProcessManagerImpl() {
         this.newProcesses = new MyQueueImpl<>();
         this.pendingProcesses = new MyHeapImpl<>(false); // false asi es el max-heap
@@ -27,6 +35,32 @@ public class ProcessManagerImpl implements ProcessManager {
         this.users = new MyHashImpl<>();
         this.allProcesses = new MyHashImpl<>();
         this.currentProcess = null;
+        initLog();
+    }
+
+    private void initLog() {
+        String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String filename = "DOORS_PROCESS_LOG_" + date;
+        try {
+            logWriter = new BufferedWriter(new FileWriter(filename, true));
+        } catch (IOException e) {
+            System.out.println("Error iniciando log: " + e.getMessage());
+        }
+    }
+
+    private void log(String message) {
+        String ts = LocalDateTime.now().format(tsFormatter);
+        String line = "[" + ts + "]: " + message;
+        System.out.println(line);
+        if (logWriter != null) {
+            try {
+                logWriter.write(line);
+                logWriter.newLine();
+                logWriter.flush();
+            } catch (IOException e) {
+                System.out.println("Error escribiendo log: " + e.getMessage());
+            }
+        }
     }
 
     @Override
@@ -113,35 +147,28 @@ public class ProcessManagerImpl implements ProcessManager {
     @Override
     public void prepareProcesses() {
 
-        while (!newProcesses.isEmpty()) {
-
-            try {
-
-                // sacando el proceso de la queue y lo agrego a pendientes
-
-                Process process = newProcesses.dequeue();
-                process.calculatePriority();
-                process.setState(ProcessState.PENDING);
-                pendingProcesses.insert(process);
-
-                // este log es temporario hasta que creemos el archivo
-
-                System.out.println("[" + getTimestamp() + "]: NEW PENDING PROCESS: PID ="
-                        + process.getPid() + " | " + process.getName()
-                        + " | " + process.getOwner()
-                        + " | P =" + process.getPriority());
-
-
-
-            } catch (Exception e) {
-
-                System.out.println("Error preparando el proceso: " + e.getMessage());
-
-            }
-
+        if (newProcesses.isEmpty()) {
+            System.out.println("No hay procesos nuevos para preparar.");
+            return;
         }
 
+        while (!newProcesses.isEmpty()) {
+            Process p;
+            try {
+                p = newProcesses.dequeue();
+            } catch (Exception e) {
+                break;
+            }
+            p.calculatePriority();
+            p.setState(ProcessState.PENDING);
+            pendingProcesses.insert(p);
 
+            log("NEW PENDING PROCESS: PID=" + p.getPid()
+                    + " | " + p.getName()
+                    + " | USER:" + p.getOwner().getAlias()
+                    + " UID:" + p.getOwner().getUid()
+                    + " | P=" + p.getPriority());
+        }
 
     }
 
