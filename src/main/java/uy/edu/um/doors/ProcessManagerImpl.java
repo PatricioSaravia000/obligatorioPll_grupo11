@@ -20,7 +20,7 @@ import uy.edu.um.tad.stack.MyStackImpl;
 
 public class ProcessManagerImpl implements ProcessManager {
 
-    private static final int max_finished_capacity = 10;
+    private static final int MAX_FINISHED_CAPACITY = 10;
 
     private MyQueue<Process> newProcesses;
     private MyHeap<Process> pendingProcesses;
@@ -241,7 +241,7 @@ public class ProcessManagerImpl implements ProcessManager {
 
     @Override
     public void printStatus() {
-        
+
         StringBuilder sb = new StringBuilder();
         sb.append("PROCESS STATUS");
 
@@ -249,14 +249,19 @@ public class ProcessManagerImpl implements ProcessManager {
         if (currentProcess != null) {
             sb.append("\n\t").append(formatBasic(currentProcess));
         }
-    
 
         sb.append("\nPENDING:");
         int nPending = pendingProcesses.size();
         Process[] pendingArr = new Process[nPending];
+        
+        try {
 
-        for (int i = 0; i < nPending; i++) {
-            pendingArr[i] = pendingProcesses.remove();
+            for (int i = 0; i < nPending; i++) {
+                pendingArr[i] = pendingProcesses.remove();
+            }
+
+        } catch (EmptyHeapException e) {
+            System.out.println("Error inesperado al recorrer pendientes: " + e.getMessage());
         }
 
         for (int i = 0; i < nPending; i++) {
@@ -269,16 +274,18 @@ public class ProcessManagerImpl implements ProcessManager {
         Process[] finishedArr = new Process[nFinished];
 
         try {
-            for (int i = 0; i < nPending; i++) {
-            pendingArr[i] = pendingProcesses.remove();
+
+            for (int i = 0; i < nFinished; i++) {
+                finishedArr[i] = finishedProcesses.pop();
             }
-        } catch (EmptyHeapException e) {
-            System.out.println("Error inesperado al recorrer pendientes: " + e.getMessage());
+
+        } catch (EmptyStackException e) {
+            System.out.println("Error inesperado al recorrer finalizados: " + e.getMessage());
         }
 
         for (int i = 0; i < nFinished; i++) {
             sb.append("\n\t").append(formatFinished(finishedArr[i]));
-        finishedProcesses.push(finishedArr[i]);
+            finishedProcesses.push(finishedArr[i]);
         }
 
         System.out.println(sb.toString());
@@ -287,7 +294,58 @@ public class ProcessManagerImpl implements ProcessManager {
 
     @Override
     public void printStatusVerbose() {
-        System.out.println("IMPLEMENTAR");
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("PROCESS STATUS");
+
+        sb.append("\nEXECUTING:");
+
+        if (currentProcess != null) {
+            sb.append("\n\t").append(formatBasic(currentProcess));
+            appendEvents(sb, currentProcess);
+        }
+
+        sb.append("\nPENDING:");
+        int nPending = pendingProcesses.size();
+        Process[] pendingArr = new Process[nPending];
+
+        try {
+
+            for (int i = 0; i < nPending; i++) {
+                pendingArr[i] = pendingProcesses.remove();
+            }
+
+        } catch (EmptyHeapException e) {
+            System.out.println("Error inesperado al recorrer pendientes: " + e.getMessage());
+        }
+
+        for (int i = 0; i < nPending; i++) {
+            sb.append("\n\t").append(formatBasic(pendingArr[i]));
+            appendEvents(sb, pendingArr[i]);
+            pendingProcesses.insert(pendingArr[i]);
+        }
+
+        sb.append("\nFINISHED:");
+        int nFinished = finishedProcesses.size();
+        Process[] finishedArr = new Process[nFinished];
+
+        try {
+
+            for (int i = 0; i < nFinished; i++) {
+                finishedArr[i] = finishedProcesses.pop();
+            }
+
+        } catch (EmptyStackException e) {
+            System.out.println("Error inesperado al recorrer finalizados: " + e.getMessage());
+        }
+        
+        for (int i = 0; i < nFinished; i++) {
+            sb.append("\n\t").append(formatFinished(finishedArr[i]));
+            appendEvents(sb, finishedArr[i]);
+            finishedProcesses.push(finishedArr[i]);
+        }
+
+        System.out.println(sb.toString());
     }
 
     @Override
@@ -331,7 +389,7 @@ public class ProcessManagerImpl implements ProcessManager {
         p.setTerminatedBy(terminatedBy);
         currentProcess = null;
 
-        if (finishedProcesses.size() == max_finished_capacity) {
+        if (finishedProcesses.size() == MAX_FINISHED_CAPACITY) {
 
             StringBuilder sb = new StringBuilder();
             sb.append("Finished process stack overflow");
@@ -340,9 +398,11 @@ public class ProcessManagerImpl implements ProcessManager {
             Process[] popped = new Process[n];
 
             try {
+                
                 for (int i = 0; i < n; i++) {
                     popped[i] = finishedProcesses.pop();
                 }
+
             } catch (EmptyStackException e) {
                 System.out.println("Error inesperado al vaciar stack de finalizados: " + e.getMessage());
             }
@@ -352,8 +412,16 @@ public class ProcessManagerImpl implements ProcessManager {
                 finishedProcesses.push(popped[i]);
             }
 
-
+            log(sb.toString());
         }
+
+        finishedProcesses.push(p);
+
+        String state = type == FinishType.TERMINATED
+                ? "TERMINATED by " + terminatedBy
+                : type.toString();
+        log("ENDING PROCESS: PID=" + p.getPid() + " | STATE: " + state);
+
     }
 
     private String formatFinished(Process p) {
@@ -368,6 +436,12 @@ public class ProcessManagerImpl implements ProcessManager {
     return "PID=" + p.getPid() + " | " + p.getName()
             + " | " + p.getOwner()
             + " | P=" + p.getPriority();
+    }
+
+    private void appendEvents(StringBuilder sb, Process p) {
+        for (int i = 0; i < p.getEvents().size(); i++) {
+            sb.append("\n\t\t").append(p.getEvents().get(i));
+        }
     }
 
 
