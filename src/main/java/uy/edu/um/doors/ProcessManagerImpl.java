@@ -11,6 +11,13 @@ import uy.edu.um.tad.queue.MyQueueImpl;
 import uy.edu.um.tad.stack.MyStack;
 import uy.edu.um.tad.stack.MyStackImpl;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class ProcessManagerImpl implements ProcessManager {
 
     private MyQueue<Process> newProcesses;
@@ -20,6 +27,9 @@ public class ProcessManagerImpl implements ProcessManager {
     private MyHash<Integer, User> users;
     private MyHash<Integer, Process> allProcesses;
 
+    private BufferedWriter logWriter;
+    private final DateTimeFormatter tsFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     public ProcessManagerImpl() {
         this.newProcesses = new MyQueueImpl<>();
         this.pendingProcesses = new MyHeapImpl<>(false); // false asi es el max-heap
@@ -27,6 +37,32 @@ public class ProcessManagerImpl implements ProcessManager {
         this.users = new MyHashImpl<>();
         this.allProcesses = new MyHashImpl<>();
         this.currentProcess = null;
+        initLog();
+    }
+
+    private void initLog() {
+        String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String filename = "DOORS_PROCESS_LOG_" + date;
+        try {
+            logWriter = new BufferedWriter(new FileWriter(filename, true));
+        } catch (IOException e) {
+            System.out.println("Error iniciando log: " + e.getMessage());
+        }
+    }
+
+    private void log(String message) {
+        String ts = LocalDateTime.now().format(tsFormatter);
+        String line = "[" + ts + "]: " + message;
+        System.out.println(line);
+        if (logWriter != null) {
+            try {
+                logWriter.write(line);
+                logWriter.newLine();
+                logWriter.flush();
+            } catch (IOException e) {
+                System.out.println("Error escribiendo log: " + e.getMessage());
+            }
+        }
     }
 
     @Override
@@ -108,7 +144,28 @@ public class ProcessManagerImpl implements ProcessManager {
 
     @Override
     public void prepareProcesses() {
-        System.out.println("IMPLEMENTAR");
+        if (newProcesses.isEmpty()) {
+            System.out.println("No hay procesos nuevos para preparar.");
+            return;
+        }
+
+        while (!newProcesses.isEmpty()) {
+            Process p;
+            try {
+                p = newProcesses.dequeue();
+            } catch (Exception e) {
+                break;
+            }
+            p.calculatePriority();
+            p.setState(ProcessState.PENDING);
+            pendingProcesses.insert(p);
+
+            log("NEW PENDING PROCESS: PID=" + p.getPid()
+                    + " | " + p.getName()
+                    + " | USER:" + p.getOwner().getAlias()
+                    + " UID:" + p.getOwner().getUid()
+                    + " | P=" + p.getPriority());
+        }
     }
 
     @Override
